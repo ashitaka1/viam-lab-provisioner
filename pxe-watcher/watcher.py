@@ -127,22 +127,18 @@ def watch(interface: str, queue_dir: Path):
         print("  WARNING: No machines queued. Run provision-batch.sh first.")
     print("  Listening for PXE boot requests...\n")
 
-    # tcpdump: capture DHCP traffic (port 67 = server, port 68 = client)
-    # -l = line-buffered, -n = no DNS, -e = show link-layer header
+    # tcpdump with -v shows DHCP options (including Vendor-Class / PXEClient)
+    # so we can distinguish PXE boots from regular DHCP traffic.
     cmd = [
-        "tcpdump", "-l", "-n", "-e",
+        "tcpdump", "-l", "-n", "-e", "-v",
         "-i", interface,
         "udp", "port", "67",
     ]
 
-    # MAC pattern in tcpdump BOOTP/DHCP output
     mac_pattern = re.compile(r"Request from ([0-9a-f:]{17})", re.IGNORECASE)
 
     proc = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
-        text=True,
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True,
     )
 
     def shutdown(signum, frame):
@@ -154,15 +150,19 @@ def watch(interface: str, queue_dir: Path):
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
 
-    for line in proc.stdout:
-        match = mac_pattern.search(line)
+    def handle_packet(lines: list[str]):
+        """Process a complete tcpdump packet. Only acts on PXE DHCP Discovers."""
+        packet_text = "\n".join(lines)
+        if "PXEClient" not in packet_text:
+            return
+
+        match = mac_pattern.search(packet_text)
         if not match:
-            continue
+            return
 
         mac = match.group(1).lower()
-
         if mac in seen_macs:
-            continue
+            return
         seen_macs.add(mac)
 
         now = datetime.now().strftime("%H:%M:%S")
@@ -170,12 +170,24 @@ def watch(interface: str, queue_dir: Path):
 
         if info:
             print(f"[{now}] New PXE client: MAC {mac} → assigned {info['name']}")
-            remaining = len(queue)
-            if remaining == 0:
+            if not queue:
                 print(f"[{now}] All machines assigned!")
                 print_summary(queue_dir)
         else:
             print(f"[{now}] New PXE client: MAC {mac} → NO SLOTS REMAINING (ignored)")
+
+    # With -v, tcpdump prints multi-line output per packet.
+    # New packets start with a timestamp (non-whitespace); continuation
+    # lines start with whitespace.
+    current_packet: list[str] = []
+
+    for line in proc.stdout:
+        if line and not line[0].isspace():
+            if current_packet:
+                handle_packet(current_packet)
+            current_packet = [line]
+        else:
+            current_packet.append(line)
 
 
 def detect_interface() -> str:

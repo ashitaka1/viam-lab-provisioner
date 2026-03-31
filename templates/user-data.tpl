@@ -31,7 +31,6 @@ autoinstall:
     - unattended-upgrades
     - mosh
     - speedtest-cli
-    - viam
 
   late-commands:
     # Set timezone
@@ -39,6 +38,10 @@ autoinstall:
 
     # Headless mode
     - curtin in-target -- systemctl set-default multi-user.target
+
+    # Larger console font for readability on high-DPI displays
+    - curtin in-target -- bash -c 'echo "FONT=Lat15-Terminus32x16" >> /etc/default/console-setup'
+    - curtin in-target -- dpkg-reconfigure -f noninteractive console-setup
 
     # Disable unneeded services (ignore errors if not present)
     - curtin in-target -- systemctl disable gdm3 || true
@@ -92,11 +95,15 @@ autoinstall:
     - |
       UPLINK_IFACE=$(ip -o -4 addr show | awk '/dynamic/ {print $2; exit}')
       MAC=$(ip link show "$UPLINK_IFACE" | awk '/ether/ {print $2}' | tr '[:upper:]' '[:lower:]')
-      curl -sf http://${PXE_SERVER}:8080/machines/${MAC}/hostname -o /tmp/assigned-hostname
+      curl -sf http://${PXE_SERVER}/machines/${MAC}/hostname -o /tmp/assigned-hostname
       HOSTNAME=$(cat /tmp/assigned-hostname)
       echo "${HOSTNAME}" > /target/etc/hostname
       sed -i "s/127.0.1.1.*/127.0.1.1\t${HOSTNAME}/" /target/etc/hosts
-      curl -sf http://${PXE_SERVER}:8080/machines/${MAC}/viam.json -o /target/etc/viam.json
+      curl -sf http://${PXE_SERVER}/machines/${MAC}/viam.json -o /target/etc/viam.json
+
+    # Install Viam CLI
+    - curtin in-target -- curl --compressed -fsSL -o /usr/local/bin/viam https://storage.googleapis.com/packages.viam.com/apps/viam-cli/viam-cli-stable-linux-amd64
+    - chmod 755 /target/usr/local/bin/viam
 
     # Install viam-agent
     - mkdir -p /target/opt/viam/bin
@@ -122,7 +129,7 @@ autoinstall:
 
     # Install Tailscale and set up first-boot join
     - curtin in-target -- bash -c 'curl -fsSL https://tailscale.com/install.sh | sh'
-    - curl -sf http://${PXE_SERVER}:8080/config/tailscale.key -o /target/etc/tailscale-authkey
+    - curl -sf http://${PXE_SERVER}/config/tailscale.key -o /target/etc/tailscale-authkey
     - |
       cat > /target/etc/systemd/system/tailscale-join.service <<'TSUNIT'
       [Unit]
