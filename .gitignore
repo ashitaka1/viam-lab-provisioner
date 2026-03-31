@@ -16,6 +16,8 @@ http-server/config/tailscale.key
 http-server/ubuntu/vmlinuz
 http-server/ubuntu/initrd
 http-server/ubuntu/casper/
+netboot/vmlinuz
+netboot/initrd
 
 # Generated autoinstall config (contains stamped secrets)
 http-server/autoinstall/user-data
@@ -27,6 +29,9 @@ http-server/autoinstall/user-data
 
 # Python venv
 .venv/
+
+# Logs
+dnsmasq.log
 
 # OS / editor
 .DS_Store

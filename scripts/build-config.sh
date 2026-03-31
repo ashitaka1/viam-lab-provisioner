@@ -20,9 +20,21 @@ SSH_PUBLIC_KEY=$(cat "${CONFIG_DIR}/ssh_host_key.pub")
 PASSWORD_HASH=$(echo 'checkmate' | mkpasswd -m sha-512 --stdin 2>/dev/null) \
   || PASSWORD_HASH=$(openssl passwd -6 'checkmate')
 
-# --- PXE server address ---
+# --- PXE server address (host:port) ---
 
-PXE_SERVER="${PXE_SERVER:-\$(ip route | awk '/default/ {print \$3}')}"
+HTTP_PORT="${HTTP_PORT:-8080}"
+if [[ -z "${PXE_SERVER:-}" ]]; then
+    # Auto-detect: use the IP of the default route interface
+    if command -v ip &>/dev/null; then
+        PXE_IP=$(ip -o -4 addr show "$(ip route | awk '/default/ {print $5; exit}')" | awk '{print $4}' | cut -d/ -f1)
+    else
+        # macOS
+        PXE_IFACE=$(route -n get default 2>/dev/null | awk '/interface:/ {print $2}')
+        PXE_IP=$(ifconfig "$PXE_IFACE" 2>/dev/null | awk '/inet / {print $2}')
+    fi
+    PXE_SERVER="${PXE_IP}:${HTTP_PORT}"
+fi
+echo "  PXE server: ${PXE_SERVER}"
 
 # --- Generate user-data ---
 
