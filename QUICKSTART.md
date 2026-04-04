@@ -45,8 +45,8 @@ cp ~/.ssh/id_ed25519.pub config/ssh_host_key.pub
 ./scripts/build-config.sh
 
 # 6. Start services
-make up     # HTTP server (Docker)
-make dhcp   # proxy DHCP + TFTP (native dnsmasq, separate terminal)
+just up     # HTTP server (Docker)
+just dhcp   # proxy DHCP + TFTP (native dnsmasq, separate terminal)
 ```
 
 ## Provisioning a batch
@@ -63,10 +63,10 @@ make dhcp   # proxy DHCP + TFTP (native dnsmasq, separate terminal)
     --location-id <your-location-id>
 
 # 2. Start the PXE watcher (separate terminal)
-make watch
+just watch
 
 # 3. Check status
-make status
+just status
 
 # 4. Power on machines one at a time (F12 for network boot)
 #    The watcher prints name assignments:
@@ -97,14 +97,18 @@ VIAM_ORG_ID=your-org-id
 VIAM_LOCATION_ID=your-location-id
 ```
 
-## Make targets
+## Commands
 
-| Target | Description |
-|--------|-------------|
-| `make up` | Start HTTP server (Docker) |
-| `make down` | Stop HTTP server |
-| `make dhcp` | Start dnsmasq proxy DHCP + TFTP |
-| `make watch` | Start PXE watcher (assigns names to MACs) |
-| `make status` | Show queue state + service status |
-| `make build-config` | Regenerate autoinstall user-data |
-| `make setup` | Extract GRUB + kernel + initrd from Ubuntu ISO |
+| Command | Description |
+|---------|-------------|
+| `just up` | Start HTTP server (Docker) |
+| `just down` | Stop HTTP server |
+| `just dhcp` | Start dnsmasq proxy DHCP + TFTP |
+| `just watch` | Start PXE watcher (assigns names to MACs) |
+| `just status` | Show queue state + service status |
+| `just build-config` | Regenerate autoinstall user-data |
+| `just setup` | Extract GRUB + kernel + initrd from Ubuntu ISO |
+| `just provision <config>` | Create machines + stage credentials |
+| `just flash <device> <name>` | Flash Pi SD card |
+| `just reset` | Re-use current queue (mark unassigned) |
+| `just clean` | Wipe all provisioning state |

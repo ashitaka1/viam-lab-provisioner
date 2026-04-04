@@ -51,16 +51,18 @@ UEFI PXE ROM → dnsmasq (proxy DHCP + TFTP) → GRUB (network boot) → Ubuntu 
 ## Operator Workflow
 
 ```bash
-make setup          # extract ISO contents (one-time)
-make build-config   # generate autoinstall from template + secrets
-make up             # start HTTP server (Docker)
-make dhcp           # start dnsmasq proxy DHCP + TFTP (native)
-make watch          # start PXE watcher (assigns names to MACs)
-make status         # show queue state + service status
+just setup          # extract ISO contents (one-time)
+just build-config   # generate autoinstall from template + secrets
+just up             # start HTTP server (Docker)
+just dhcp           # start dnsmasq proxy DHCP + TFTP (native)
+just watch          # start PXE watcher (assigns names to MACs)
+just status         # show queue state + service status
 
-# provision-batch.sh creates machines + stages credentials
-./scripts/provision-batch.sh --config config/my-batch.env
-# or: ./scripts/provision-batch.sh --count 6 --prefix lab-meerkat --org-id ... --location-id ...
+# provision machines + stage credentials
+just provision config/my-batch.env
+
+# flash Pi SD cards
+just flash /dev/disk4 lab-pi-1
 ```
 
 ## Raspberry Pi
