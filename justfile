@@ -2,7 +2,7 @@
 
 # Interactive setup — creates config/site.env
 setup-wizard:
-    ./scripts/setup-wizard.sh
+    ./cli/setup-wizard.sh
 
 # Start all PXE services, run watcher in foreground. Ctrl-C stops everything.
 serve:
@@ -17,14 +17,14 @@ serve:
     }
     trap cleanup EXIT
     echo "Generating autoinstall config..."
-    ./scripts/build-config.sh
+    ./cli/build-config.sh
     echo ""
     echo "Starting HTTP server..."
     docker compose up -d
     echo "Starting dnsmasq (DHCP proxy + TFTP)..."
     sudo dnsmasq --conf-file=netboot/dnsmasq.conf --tftp-root={{justfile_directory()}}/netboot --log-facility={{justfile_directory()}}/dnsmasq.log
     # Tail HTTP logs + create PXE guard files when hostname is fetched
-    {{justfile_directory()}}/scripts/tail-http-logs.sh {{justfile_directory()}}/netboot/grub/provisioned &
+    {{justfile_directory()}}/cli/tail-http-logs.sh {{justfile_directory()}}/netboot/grub/provisioned &
     HTTP_LOG_PID=$!
     echo "Starting PXE watcher (Ctrl-C to stop all)..."
     echo ""
@@ -56,23 +56,23 @@ down:
 
 # Generate autoinstall user-data from template + secrets
 build-config:
-    ./scripts/build-config.sh
+    ./cli/build-config.sh
 
 # Extract GRUB, kernel, initrd from Ubuntu ISO (one-time setup)
 setup:
-    ./scripts/setup-pxe-server.sh
+    ./cli/setup-pxe-server.sh
 
 # Create machines / generate queue (prefix and count required)
 provision prefix count:
-    ./scripts/provision-batch.sh --prefix {{prefix}} --count {{count}}
+    ./cli/provision-batch.sh --prefix {{prefix}} --count {{count}}
 
 # Flash a single Pi SD card
 flash device name:
-    ./scripts/flash-pi-sd.sh {{device}} {{name}}
+    ./cli/flash-pi-sd.sh {{device}} {{name}}
 
 # Flash all queued machines, prompting for SD card swaps
 flash-batch:
-    ./scripts/flash-batch.sh
+    ./cli/flash-batch.sh
 
 # Download Raspberry Pi OS Lite image
 download-pi-image:
