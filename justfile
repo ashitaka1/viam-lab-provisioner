@@ -47,9 +47,9 @@ build-config:
 setup:
     ./scripts/setup-pxe-server.sh
 
-# Create machines / generate queue from config
-provision config="config/site.env":
-    ./scripts/provision-batch.sh --config {{config}}
+# Create machines / generate queue (prefix and count required)
+provision prefix count:
+    ./scripts/provision-batch.sh --prefix {{prefix}} --count {{count}}
 
 # Flash a single Pi SD card
 flash device name:

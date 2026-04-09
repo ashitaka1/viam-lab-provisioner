@@ -19,13 +19,16 @@ CLI_ORG=""
 
 usage() {
     cat <<EOF
-Usage: $0 [--config FILE] [--count N] [--prefix PREFIX] [--location-id ID] [--org-id ID]
+Usage: $0 --prefix PREFIX --count N [--config FILE] [--location-id ID] [--org-id ID]
 
-  --config FILE      Config file (default: config/site.env; CLI flags override)
+  --prefix PREFIX    Name prefix (e.g., lab-pi, teleop-demo)
   --count N          Number of machines
-  --prefix PREFIX    Name prefix
-  --location-id ID   Viam location ID
-  --org-id ID        Viam organization ID
+  --config FILE      Environment config (default: config/site.env)
+  --location-id ID   Override Viam location ID from config
+  --org-id ID        Override Viam org ID from config
+
+Environment settings (credentials, WiFi, etc.) come from config/site.env.
+Run 'just setup-wizard' to create or switch environments.
 
 In os-only/agent mode, generates a names-only queue for SD card flashing.
 In full mode, creates machines in Viam and retrieves cloud credentials.
