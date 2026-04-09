@@ -3,6 +3,7 @@ config/tailscale.key
 config/viam-credentials.env
 config/*.env
 !config/*.env.example
+config/environments/
 config/ssh_host_key.pub
 config/ssh_host_key
 

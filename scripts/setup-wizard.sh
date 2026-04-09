@@ -2,25 +2,59 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ENV_DIR="${REPO_ROOT}/config/environments"
 SITE_CONFIG="${REPO_ROOT}/config/site.env"
+
+mkdir -p "$ENV_DIR"
 
 echo "=== Viam Lab Provisioner Setup ==="
 echo ""
 
-if [[ -f "$SITE_CONFIG" ]]; then
-    echo "config/site.env already exists."
-    read -p "Overwrite? (y/n) [n]: " OVERWRITE
-    [[ "$OVERWRITE" == "y" ]] || { echo "Keeping existing config."; exit 0; }
+# --- Check for existing environments ---
+
+EXISTING=($(ls "$ENV_DIR"/*.env 2>/dev/null || true))
+
+if [[ ${#EXISTING[@]} -gt 0 ]]; then
+    echo "Existing environments:"
+    for i in "${!EXISTING[@]}"; do
+        NAME=$(basename "${EXISTING[$i]}" .env)
+        MODE=$(grep '^PROVISION_MODE=' "${EXISTING[$i]}" 2>/dev/null | cut -d= -f2)
+        WIFI=$(grep '^WIFI_SSID=' "${EXISTING[$i]}" 2>/dev/null | cut -d= -f2)
+        echo "  $((i+1))) ${NAME}  (mode: ${MODE:-?}, wifi: ${WIFI:-none})"
+    done
+    echo "  n) Create new environment"
+    echo ""
+    read -p "Choose [n]: " CHOICE
+    CHOICE="${CHOICE:-n}"
+
+    if [[ "$CHOICE" != "n" && "$CHOICE" =~ ^[0-9]+$ ]]; then
+        IDX=$((CHOICE - 1))
+        if [[ $IDX -ge 0 && $IDX -lt ${#EXISTING[@]} ]]; then
+            SELECTED="${EXISTING[$IDX]}"
+            ENV_NAME=$(basename "$SELECTED" .env)
+            ln -sf "environments/${ENV_NAME}.env" "$SITE_CONFIG"
+            echo ""
+            echo "Activated: ${ENV_NAME}"
+            echo "  config/site.env → config/environments/${ENV_NAME}.env"
+            echo ""
+            echo "Provision with: just provision --prefix <name> --count <N>"
+            exit 0
+        fi
+    fi
     echo ""
 fi
 
-# --- Machine batch ---
+# --- Environment name ---
 
-echo "Machine batch:"
-read -p "  Hostname prefix [lab-pi]: " PREFIX
-PREFIX="${PREFIX:-lab-pi}"
-read -p "  How many machines? [10]: " COUNT
-COUNT="${COUNT:-10}"
+echo "New environment:"
+read -p "  Name (e.g., tcos, hackathon, office-lab): " ENV_NAME
+[[ -n "$ENV_NAME" ]] || { echo "Name required."; exit 1; }
+
+ENV_FILE="${ENV_DIR}/${ENV_NAME}.env"
+if [[ -f "$ENV_FILE" ]]; then
+    read -p "  '${ENV_NAME}' already exists. Overwrite? (y/n) [n]: " OVERWRITE
+    [[ "$OVERWRITE" == "y" ]] || { echo "Keeping existing."; exit 0; }
+fi
 echo ""
 
 # --- OS account ---
@@ -48,48 +82,46 @@ echo ""
 
 echo "SSH access:"
 echo "  Provisioned machines need an SSH public key so you can log in."
-echo "  You can generate a dedicated keypair for these machines, or use"
-echo "  an existing key."
+echo "  You can generate a dedicated keypair, or use an existing key."
 echo ""
 
 SSH_PUBLIC_KEY_FILE=""
-read -p "  Generate a new keypair for '${PREFIX}-*' machines? (y/n) [y]: " GEN_KEY
+DEFAULT_KEY_NAME="id_${ENV_NAME}"
+read -p "  Generate a new keypair '${DEFAULT_KEY_NAME}'? (y/n) [y]: " GEN_KEY
 GEN_KEY="${GEN_KEY:-y}"
 
 if [[ "$GEN_KEY" == "y" ]]; then
-    KEY_PATH="$HOME/.ssh/id_${PREFIX}"
+    KEY_PATH="$HOME/.ssh/${DEFAULT_KEY_NAME}"
     if [[ -f "$KEY_PATH" ]]; then
         echo "  Key already exists at ${KEY_PATH}"
     else
         echo "  Generating ${KEY_PATH}..."
-        ssh-keygen -t ed25519 -f "$KEY_PATH" -N "" -C "${PREFIX}-provisioner"
+        ssh-keygen -t ed25519 -f "$KEY_PATH" -N "" -C "${ENV_NAME}-provisioner"
     fi
     SSH_PUBLIC_KEY_FILE="${KEY_PATH}.pub"
 
-    # Configure SSH client
     SSH_CONFIG="$HOME/.ssh/config"
-    MATCH_PATTERN="${PREFIX}-*"
-    if grep -q "Host ${MATCH_PATTERN}" "$SSH_CONFIG" 2>/dev/null; then
-        echo "  SSH config already has a '${MATCH_PATTERN}' block."
-    else
-        echo ""
-        echo "  Adding SSH config so 'ssh ${PREFIX}-<name>' just works:"
-        echo "    Host ${MATCH_PATTERN}"
-        echo "      User ${USERNAME}"
-        echo "      IdentityFile ${KEY_PATH}"
-        echo ""
-        read -p "  Add this to ~/.ssh/config? (y/n) [y]: " ADD_SSH_CONFIG
-        ADD_SSH_CONFIG="${ADD_SSH_CONFIG:-y}"
-        if [[ "$ADD_SSH_CONFIG" == "y" ]]; then
-            mkdir -p "$(dirname "$SSH_CONFIG")"
+    echo ""
+    echo "  To make 'ssh <machine-name>' work, add a Host block to ~/.ssh/config"
+    echo "  for each prefix you use. Example:"
+    echo ""
+    echo "    Host my-prefix-*"
+    echo "      User ${USERNAME}"
+    echo "      IdentityFile ${KEY_PATH}"
+    echo ""
+    read -p "  Add a Host block now? Enter prefix (blank to skip): " SSH_PREFIX
+    if [[ -n "$SSH_PREFIX" ]]; then
+        if grep -q "Host ${SSH_PREFIX}-\*" "$SSH_CONFIG" 2>/dev/null; then
+            echo "  SSH config already has a '${SSH_PREFIX}-*' block."
+        else
             cat >> "$SSH_CONFIG" <<SSHEOF
 
-Host ${MATCH_PATTERN}
+Host ${SSH_PREFIX}-*
     User ${USERNAME}
     IdentityFile ${KEY_PATH}
 SSHEOF
             chmod 600 "$SSH_CONFIG"
-            echo "  Added to ${SSH_CONFIG}"
+            echo "  Added '${SSH_PREFIX}-*' to ${SSH_CONFIG}"
         fi
     fi
 else
@@ -97,7 +129,7 @@ else
     SSH_PUBLIC_KEY_FILE="${SSH_PUBLIC_KEY_FILE:-~/.ssh/id_ed25519.pub}"
     EXPANDED="${SSH_PUBLIC_KEY_FILE/#\~/$HOME}"
     if [[ ! -f "$EXPANDED" ]]; then
-        echo "  WARNING: ${SSH_PUBLIC_KEY_FILE} not found. You'll need to fix this before flashing."
+        echo "  WARNING: ${SSH_PUBLIC_KEY_FILE} not found."
     fi
 fi
 echo ""
@@ -142,13 +174,9 @@ echo ""
 
 # --- Write config ---
 
-cat > "$SITE_CONFIG" <<EOF
-# Site configuration — generated by setup-wizard
-# Re-run 'just setup-wizard' to regenerate, or edit directly.
-
-# Machine batch
-PREFIX=${PREFIX}
-COUNT=${COUNT}
+cat > "$ENV_FILE" <<EOF
+# Environment: ${ENV_NAME}
+# Generated by setup-wizard. Edit directly or re-run 'just setup-wizard'.
 
 # OS account
 USERNAME=${USERNAME}
@@ -173,17 +201,13 @@ VIAM_LOCATION_ID=${VIAM_LOCATION_ID}
 TAILSCALE_AUTH_KEY=${TAILSCALE_AUTH_KEY}
 EOF
 
-echo "Written to config/site.env"
+# Symlink as active environment
+ln -sf "environments/${ENV_NAME}.env" "$SITE_CONFIG"
+
+echo "Saved: config/environments/${ENV_NAME}.env"
+echo "Active: config/site.env → config/environments/${ENV_NAME}.env"
 echo ""
 echo "=== Next steps ==="
-echo "  1. Download Pi OS image:  just download-pi-image"
-echo "  2. Flash SD cards:        just flash-batch"
-if [[ "$PROVISION_MODE" == "full" ]]; then
-    echo ""
-    echo "  For PXE (x86 machines):"
-    echo "  1. Extract ISO:           just setup"
-    echo "  2. Generate autoinstall:  just build-config"
-    echo "  3. Start services:        just up && just dhcp"
-    echo "  4. Provision batch:       just provision config/site.env"
-    echo "  5. Start watcher:         just watch"
-fi
+echo "  just provision --prefix <name> --count <N>"
+echo "  just flash-batch"
+echo "  just serve  (for PXE)"

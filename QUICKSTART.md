@@ -28,7 +28,7 @@ Viam Cloud integration (optional), and Tailscale (optional).
 just download-pi-image
 
 # 2. Generate the machine queue
-just provision
+just provision hackathon-pi 10
 
 # 3. Flash all SD cards (prompts for card swaps)
 just flash-batch
@@ -58,7 +58,7 @@ just up      # HTTP server
 just dhcp    # DHCP proxy + TFTP
 
 # 5. Generate queue + credentials
-just provision
+just provision lab-meerkat 6
 
 # 6. Start watcher
 just watch
@@ -87,7 +87,7 @@ Set in `config/site.env` (or via the setup wizard):
 | Command | Description |
 |---------|-------------|
 | `just setup-wizard` | Interactive setup — creates config/site.env |
-| `just provision` | Generate queue (os-only/agent) or create Viam machines (full) |
+| `just provision <prefix> <count>` | Generate queue or create Viam machines |
 | `just flash-batch` | Flash all queued machines to SD cards |
 | `just flash <dev> <name>` | Flash a single SD card |
 | `just download-pi-image` | Download Raspberry Pi OS Lite |
