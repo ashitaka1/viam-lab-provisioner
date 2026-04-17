@@ -37,7 +37,7 @@ if [[ ${#EXISTING[@]} -gt 0 ]]; then
             echo "Activated: ${ENV_NAME}"
             echo "  config/site.env → config/environments/${ENV_NAME}.env"
             echo ""
-            echo "Provision with: just provision --prefix <name> --count <N>"
+            echo "Provision with: just provision <prefix> <count>"
             exit 0
         fi
     fi
@@ -208,6 +208,6 @@ echo "Saved: config/environments/${ENV_NAME}.env"
 echo "Active: config/site.env → config/environments/${ENV_NAME}.env"
 echo ""
 echo "=== Next steps ==="
-echo "  just provision --prefix <name> --count <N>"
+echo "  just provision <prefix> <count>"
 echo "  just flash-batch"
 echo "  just serve  (for PXE)"
