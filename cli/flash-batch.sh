@@ -4,7 +4,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SITE_CONFIG="${REPO_ROOT}/config/site.env"
 MACHINES_DIR="${REPO_ROOT}/http-server/machines"
-FLASH_SCRIPT="${REPO_ROOT}/scripts/flash-pi-sd.sh"
+FLASH_SCRIPT="${REPO_ROOT}/cli/flash-pi-sd.sh"
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 

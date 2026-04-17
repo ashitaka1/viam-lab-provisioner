@@ -122,8 +122,8 @@ fi
 
 echo ""
 if [[ "${MISSING}" -eq 1 ]]; then
-    echo "Fix missing items above, then run: ./scripts/build-config.sh"
+    echo "Fix missing items above, then run: ./cli/build-config.sh"
 else
-    echo "All set. Run: ./scripts/build-config.sh"
+    echo "All set. Run: ./cli/build-config.sh"
 fi
 echo "Then: make up && make dhcp"

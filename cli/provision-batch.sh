@@ -3,7 +3,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 MACHINES_DIR="${REPO_ROOT}/http-server/machines"
-FETCH_CREDS="${REPO_ROOT}/scripts/fetch-credentials.py"
+FETCH_CREDS="${REPO_ROOT}/cli/fetch-credentials.py"
 PYTHON="${REPO_ROOT}/.venv/bin/python3"
 SITE_CONFIG="${REPO_ROOT}/config/site.env"
 
