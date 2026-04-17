@@ -4,15 +4,23 @@
 setup-wizard:
     ./scripts/setup-wizard.sh
 
-# Start all PXE services, run watcher in foreground (Ctrl-C to stop watcher, `just stop` for all)
+# Start all PXE services, run watcher in foreground. Ctrl-C stops everything.
 serve:
     #!/usr/bin/env bash
     set -euo pipefail
+    cleanup() {
+        echo ""
+        echo "Shutting down..."
+        sudo killall dnsmasq 2>/dev/null && echo "  dnsmasq stopped" || true
+        docker compose down 2>/dev/null && echo "  Docker stopped" || true
+        echo "Done."
+    }
+    trap cleanup EXIT
     echo "Starting HTTP server..."
     docker compose up -d
     echo "Starting dnsmasq (DHCP proxy + TFTP)..."
     sudo dnsmasq --conf-file=netboot/dnsmasq.conf --tftp-root={{justfile_directory()}}/netboot --log-facility={{justfile_directory()}}/dnsmasq.log
-    echo "Starting PXE watcher (Ctrl-C to stop)..."
+    echo "Starting PXE watcher (Ctrl-C to stop all)..."
     echo ""
     sudo {{justfile_directory()}}/.venv/bin/python3 {{justfile_directory()}}/pxe-watcher/watcher.py
 
