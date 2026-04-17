@@ -65,7 +65,7 @@ autoinstall:
     # WiFi is handled by a first-boot service (firmware not available in installer)
     - |
       LOG=/target/var/log/provisioning.log
-      UPLINK_IFACE=$(ip -o -4 addr show | awk '/dynamic/ {print $2; exit}')
+      UPLINK_IFACE=$(ip -o -4 addr show | awk '$2 != "lo" {print $2; exit}')
       ROBOTNET_IFACE=$(ip -o link show | awk -v up="$UPLINK_IFACE" '$2 ~ /^enp/ && $2 !~ up {gsub(/:/, "", $2); print $2; exit}')
       echo "NIC discovery: uplink=$UPLINK_IFACE robotnet=$ROBOTNET_IFACE" >> $LOG
       cat > /target/etc/netplan/99-netplan.yaml <<NETPLAN
@@ -128,7 +128,7 @@ autoinstall:
     # Fetch per-machine identity from PXE server by MAC address
     - |
       LOG=/target/var/log/provisioning.log
-      UPLINK_IFACE=$(ip -o -4 addr show | awk '/dynamic/ {print $2; exit}')
+      UPLINK_IFACE=$(ip -o -4 addr show | awk '$2 != "lo" {print $2; exit}')
       MAC=$(ip link show "$UPLINK_IFACE" | awk '/ether/ {print $2}' | tr '[:upper:]' '[:lower:]')
       echo "Identity fetch: MAC=$MAC from http://${PXE_SERVER}" >> $LOG
       if curl -sf http://${PXE_SERVER}/machines/${MAC}/hostname -o /tmp/assigned-hostname; then
