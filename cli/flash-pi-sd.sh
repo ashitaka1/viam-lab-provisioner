@@ -10,8 +10,9 @@ die() { echo "ERROR: $*" >&2; exit 1; }
 
 usage() {
     cat <<EOF
-Usage: $0 <device> <machine-name>
+Usage: $0 [--yes] <device> <machine-name>
 
+  --yes         Skip the interactive "ERASE ALL DATA" confirmation.
   device        Block device for the SD card (e.g., /dev/disk4 on macOS, /dev/sdb on Linux)
   machine-name  Machine name (from provision-batch.sh queue, or any name in os-only mode)
 
@@ -20,6 +21,12 @@ Example:
 EOF
     exit 1
 }
+
+ASSUME_YES=0
+if [[ "${1:-}" == "--yes" ]]; then
+    ASSUME_YES=1
+    shift
+fi
 
 [[ $# -eq 2 ]] || usage
 DEVICE="$1"
@@ -95,8 +102,10 @@ else
 fi
 
 echo ""
-read -p "Write $(basename $PI_IMAGE) to $DEVICE? This will ERASE ALL DATA. (yes/no): " CONFIRM
-[[ "$CONFIRM" == "yes" ]] || die "Aborted."
+if [[ $ASSUME_YES -eq 0 ]]; then
+    read -p "Write $(basename $PI_IMAGE) to $DEVICE? This will ERASE ALL DATA. (yes/no): " CONFIRM
+    [[ "$CONFIRM" == "yes" ]] || die "Aborted."
+fi
 
 # --- Write the image ---
 

@@ -116,25 +116,32 @@ class _StageRow extends ConsumerWidget {
   }
 
   (IconData, Color) _stageIcon(BatchStage stage, Batch batch) {
+    final complete = _stageComplete(stage, batch);
+    if (complete) {
+      return (
+        CupertinoIcons.checkmark_circle_fill,
+        CupertinoColors.activeGreen,
+      );
+    }
+    return (CupertinoIcons.circle, CupertinoColors.systemGrey3);
+  }
+
+  bool _stageComplete(BatchStage stage, Batch batch) {
     return switch (stage) {
-      BatchStage.provision => (
-          CupertinoIcons.checkmark_circle_fill,
-          CupertinoColors.activeGreen,
-        ),
-      BatchStage.flash || BatchStage.boot => (
-          CupertinoIcons.circle,
-          CupertinoColors.systemGrey3,
-        ),
-      BatchStage.verify => (
-          CupertinoIcons.circle,
-          CupertinoColors.systemGrey3,
-        ),
+      BatchStage.provision => true,
+      BatchStage.flash ||
+      BatchStage.boot =>
+        batch.assignedCount == batch.count,
+      BatchStage.verify => false,
     };
   }
 
   Widget _stageTrailing(BatchStage stage, Batch batch) {
     final text = switch (stage) {
       BatchStage.provision => '${batch.count}/${batch.count}',
+      BatchStage.flash ||
+      BatchStage.boot =>
+        '${batch.assignedCount}/${batch.count}',
       _ => '',
     };
     if (text.isEmpty) return const SizedBox.shrink();

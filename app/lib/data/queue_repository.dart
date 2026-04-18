@@ -42,4 +42,22 @@ class QueueRepository {
     final file = File(_batchMetaPath);
     await file.writeAsString(jsonEncode({'target_type': targetType}));
   }
+
+  /// Marks the named machine as assigned in queue.json. Used by the Pi
+  /// flash flow (x86 machines get marked by the PXE watcher instead).
+  Future<void> markAssigned(String name) async {
+    final entries = await loadQueue();
+    final updated = [
+      for (final e in entries)
+        {
+          'name': e.name,
+          'assigned': e.name == name ? true : e.assigned,
+          if (e.mac != null) 'mac': e.mac,
+          if (e.slotId != null) 'slot_id': e.slotId,
+        },
+    ];
+    await File(_queuePath).writeAsString(
+      const JsonEncoder.withIndent('  ').convert(updated),
+    );
+  }
 }

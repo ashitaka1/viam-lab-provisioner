@@ -186,7 +186,7 @@ external HTTP client, no SQLite, no bloc.
 | 2 | Batch model, queue repository + live file watch, New Batch form, sidebar dashboard, stage stepper | Done |
 | 3 | Process runner, privilege helpers, provision stage streaming output, Reset/Clear batch actions | Done |
 | 4 | Embedded HTTP server, service lifecycle (HTTP + dnsmasq + watcher), Boot stage UI, health indicators | Done |
-| 5 | Pi SD card flash state machine, device detection, dd-with-progress wizard | Pending |
+| 5 | Pi SD card flash state machine, device detection, dd-with-progress wizard | Done |
 | 6 | Verify stage summary, graceful shutdown, NIC selector, theme toggle, edge cases | Pending |
 
 ### Verification checkpoints
