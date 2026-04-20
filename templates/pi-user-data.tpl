@@ -50,7 +50,7 @@ write_files:
       dpkg-reconfigure -f noninteractive console-setup >> $LOG 2>&1 || true
 
       # Packages
-      apt-get install -y curl jq net-tools mosh speedtest-cli unattended-upgrades >> $LOG 2>&1
+      apt-get install -y avahi-daemon avahi-utils curl jq net-tools mosh speedtest-cli unattended-upgrades >> $LOG 2>&1
       echo "Packages installed" >> $LOG
 
       # Viam (conditional)
