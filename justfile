@@ -23,8 +23,8 @@ serve:
     docker compose up -d
     echo "Starting dnsmasq (DHCP proxy + TFTP)..."
     sudo dnsmasq --conf-file=netboot/dnsmasq.conf --tftp-root={{justfile_directory()}}/netboot --log-facility={{justfile_directory()}}/dnsmasq.log
-    # Tail HTTP logs in the background
-    docker logs -f pxe-http 2>&1 | grep --line-buffered -vE 'worker|notice|entrypoint|envsubst|resolvers|tune-worker|Configuration complete' &
+    # Tail HTTP logs + create PXE guard files when hostname is fetched
+    {{justfile_directory()}}/scripts/tail-http-logs.sh {{justfile_directory()}}/netboot/grub/provisioned &
     HTTP_LOG_PID=$!
     echo "Starting PXE watcher (Ctrl-C to stop all)..."
     echo ""
