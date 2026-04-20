@@ -20,6 +20,15 @@ class BootStagePanel extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _Header(services: services),
+          if (services.lastError != null) ...[
+            const SizedBox(height: 12),
+            _ErrorBanner(
+              message: services.lastError!,
+              onDismiss: () => ref
+                  .read(servicesControllerProvider.notifier)
+                  .clearLastError(),
+            ),
+          ],
           const SizedBox(height: 16),
           const _PrepRow(),
           const SizedBox(height: 16),
@@ -125,6 +134,58 @@ class _Header extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ErrorBanner extends StatelessWidget {
+  const _ErrorBanner({required this.message, required this.onDismiss});
+  final String message;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: CupertinoColors.systemRed.resolveFrom(context).withOpacity(0.12),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: CupertinoColors.systemRed.resolveFrom(context).withOpacity(0.4),
+          width: 0.5,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            CupertinoIcons.exclamationmark_triangle_fill,
+            size: 16,
+            color: CupertinoColors.systemRed.resolveFrom(context),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: 12,
+                color: CupertinoColors.label.resolveFrom(context),
+                height: 1.35,
+              ),
+            ),
+          ),
+          CupertinoButton(
+            padding: EdgeInsets.zero,
+            minSize: 20,
+            onPressed: onDismiss,
+            child: const Icon(
+              CupertinoIcons.xmark,
+              size: 13,
+              color: CupertinoColors.secondaryLabel,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -45,7 +45,7 @@ class _BatchActions extends StatelessWidget {
       context,
       title: 'Reset batch?',
       message:
-          'Marks every machine as unassigned so the same batch can be re-flashed. Staged credentials are kept.',
+          'Marks every machine as unassigned and clears MAC bindings so the batch can be re-flashed or re-PXE-booted. Credentials staged in slot directories are kept.',
       destructiveLabel: 'Reset',
     );
     if (confirmed != true) return;

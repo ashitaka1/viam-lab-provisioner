@@ -34,17 +34,26 @@ class ServicesController extends StateNotifier<ServicesStatus> {
     _log.add(ServiceLogLine(tag, line, isError: isError));
   }
 
+  void clearLastError() {
+    if (state.lastError == null) return;
+    state = state.copyWith(clearLastError: true);
+  }
+
   Future<void> startAll() async {
     if (state.anyBusy) return;
+    state = state.copyWith(clearLastError: true);
 
     final sudoOk = await acquireSudo();
     if (!sudoOk) {
       state = state.copyWith(
-        dnsmasq: const ServiceStatus(
-          state: ServiceState.error,
-          message: 'Sudo authentication cancelled',
-        ),
+        lastError:
+            'Sudo authentication cancelled — dnsmasq and the PXE watcher need root to bind.',
       );
+      _log.add(const ServiceLogLine(
+        'services',
+        'Start cancelled: sudo authentication declined.',
+        isError: true,
+      ));
       return;
     }
 
@@ -54,6 +63,7 @@ class ServicesController extends StateNotifier<ServicesStatus> {
   }
 
   Future<void> stopAll() async {
+    state = state.copyWith(clearLastError: true);
     await _stopWatcher();
     await _stopDnsmasq();
     await _stopHttp();

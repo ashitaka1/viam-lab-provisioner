@@ -21,11 +21,16 @@ class ServicesStatus {
     this.http = ServiceStatus.stopped,
     this.dnsmasq = ServiceStatus.stopped,
     this.watcher = ServiceStatus.stopped,
+    this.lastError,
   });
 
   final ServiceStatus http;
   final ServiceStatus dnsmasq;
   final ServiceStatus watcher;
+
+  /// Top-level error from the most recent `startAll` / `stopAll` attempt
+  /// (e.g. sudo cancelled). Shown as a banner, cleared on the next attempt.
+  final String? lastError;
 
   bool get allRunning => http.isRunning && dnsmasq.isRunning && watcher.isRunning;
   bool get anyRunning => http.isRunning || dnsmasq.isRunning || watcher.isRunning;
@@ -35,11 +40,14 @@ class ServicesStatus {
     ServiceStatus? http,
     ServiceStatus? dnsmasq,
     ServiceStatus? watcher,
+    String? lastError,
+    bool clearLastError = false,
   }) {
     return ServicesStatus(
       http: http ?? this.http,
       dnsmasq: dnsmasq ?? this.dnsmasq,
       watcher: watcher ?? this.watcher,
+      lastError: clearLastError ? null : (lastError ?? this.lastError),
     );
   }
 }
