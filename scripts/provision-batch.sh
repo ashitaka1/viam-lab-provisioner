@@ -169,7 +169,7 @@ done
 AVAILABLE=("${AVAILABLE[@]:0:$COUNT}")
 
 echo "  Existing: ${#EXISTING_NUMS[@]} machines"
-echo "  Will create: ${AVAILABLE[*]}"
+echo "  Will create: ${AVAILABLE[*]} (${COUNT} total)"
 
 # Create machines and stage credentials
 mkdir -p "$MACHINES_DIR"
@@ -227,4 +227,4 @@ echo "=== Provisioning Complete ==="
 echo "  Machines created: ${COUNT}"
 echo "  Queue: just status"
 echo ""
-echo "Next: just flash-batch (Pi SD) or just watch (PXE)"
+echo "Next: just flash-batch (Pi SD) or just serve (PXE)"
