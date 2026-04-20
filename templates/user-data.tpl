@@ -24,6 +24,8 @@ autoinstall:
 
   packages:
     - openssh-server
+    - avahi-daemon
+    - avahi-utils
     - curl
     - jq
     - net-tools
