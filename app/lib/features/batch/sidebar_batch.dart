@@ -1,7 +1,9 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show Tooltip;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/batch.dart';
+import '../../providers/provision_providers.dart';
 import '../../providers/queue_providers.dart';
 import '../../theme/theme.dart';
 
@@ -13,6 +15,9 @@ class SidebarBatch extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final stages = batch.stages;
     final selectedIdx = ref.watch(selectedStageIndexProvider);
+    final provisionRunning = ref.watch(
+      provisionControllerProvider.select((s) => s.isRunning),
+    );
 
     return ListView(
       padding: EdgeInsets.zero,
@@ -25,6 +30,7 @@ class SidebarBatch extends ConsumerWidget {
             index: i,
             isSelected: i == selectedIdx,
             batch: batch,
+            provisionRunning: provisionRunning,
           ),
         const _Divider(),
         const _MachineListHeader(),
@@ -78,47 +84,61 @@ class _StageRow extends ConsumerWidget {
     required this.index,
     required this.isSelected,
     required this.batch,
+    required this.provisionRunning,
   });
   final BatchStage stage;
   final int index;
   final bool isSelected;
   final Batch batch;
+  final bool provisionRunning;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final (icon, iconColor) = _stageIcon(stage, batch);
-    final selectedBg = CupertinoColors.systemBlue.withValues(alpha: 0.12);
+    final (icon, iconColor) = _stageIcon(stage, batch, provisionRunning);
+    final enabled = _stageEnabled(stage, batch, provisionRunning);
+    final selectedBg = CupertinoTheme.of(context)
+        .primaryColor
+        .withValues(alpha: 0.12);
+    final row = Container(
+      color: isSelected ? selectedBg : null,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: iconColor),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '${index + 1}. ${stage.label}',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                color: enabled
+                    ? CupertinoColors.label.resolveFrom(context)
+                    : CupertinoColors.tertiaryLabel.resolveFrom(context),
+              ),
+            ),
+          ),
+          _stageTrailing(stage, batch),
+        ],
+      ),
+    );
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () =>
-          ref.read(selectedStageIndexProvider.notifier).state = index,
-      child: Container(
-        color: isSelected ? selectedBg : null,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Row(
-          children: [
-            Icon(icon, size: 16, color: iconColor),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                '${index + 1}. ${stage.label}',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                ),
-              ),
-            ),
-            _stageTrailing(stage, batch),
-          ],
-        ),
+      onTap: enabled
+          ? () => ref.read(selectedStageIndexProvider.notifier).state = index
+          : null,
+      child: Tooltip(
+        message: enabled ? '' : _disabledReason(stage, batch, provisionRunning),
+        waitDuration: const Duration(milliseconds: 400),
+        child: row,
       ),
     );
   }
 
-  (IconData, Color) _stageIcon(BatchStage stage, Batch batch) {
-    final complete = _stageComplete(stage, batch);
-    if (complete) {
+  (IconData, Color) _stageIcon(
+      BatchStage stage, Batch batch, bool provisionRunning) {
+    if (_stageComplete(stage, batch, provisionRunning)) {
       return (
         CupertinoIcons.checkmark_circle_fill,
         CupertinoColors.activeGreen,
@@ -127,13 +147,33 @@ class _StageRow extends ConsumerWidget {
     return (CupertinoIcons.circle, CupertinoColors.systemGrey3);
   }
 
-  bool _stageComplete(BatchStage stage, Batch batch) {
+  bool _stageComplete(BatchStage stage, Batch batch, bool provisionRunning) {
+    final allAssigned = batch.count > 0 && batch.assignedCount == batch.count;
+    return switch (stage) {
+      BatchStage.provision => batch.count > 0 && !provisionRunning,
+      BatchStage.flash || BatchStage.boot => allAssigned,
+      BatchStage.verify => allAssigned,
+    };
+  }
+
+  bool _stageEnabled(BatchStage stage, Batch batch, bool provisionRunning) {
+    final provisionDone = batch.count > 0 && !provisionRunning;
+    final allAssigned = batch.count > 0 && batch.assignedCount == batch.count;
     return switch (stage) {
       BatchStage.provision => true,
-      BatchStage.flash ||
-      BatchStage.boot =>
-        batch.assignedCount == batch.count,
-      BatchStage.verify => false,
+      BatchStage.flash || BatchStage.boot => provisionDone,
+      BatchStage.verify => allAssigned,
+    };
+  }
+
+  String _disabledReason(
+      BatchStage stage, Batch batch, bool provisionRunning) {
+    return switch (stage) {
+      BatchStage.provision => '',
+      BatchStage.flash || BatchStage.boot => provisionRunning
+          ? 'Provisioning is still running'
+          : 'Complete Provision first',
+      BatchStage.verify => 'No machines have been flashed yet',
     };
   }
 

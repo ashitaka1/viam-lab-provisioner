@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show Tooltip;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -14,6 +15,11 @@ class BootStagePanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final services = ref.watch(servicesControllerProvider);
     final log = ref.watch(serviceLogProvider).valueOrNull ?? const [];
+    final setupDone =
+        ref.watch(prepDoneProvider(PrepTask.setupPxe)).valueOrNull ?? false;
+    final buildDone =
+        ref.watch(prepDoneProvider(PrepTask.buildConfig)).valueOrNull ?? false;
+    final prepReady = setupDone && buildDone;
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -53,19 +59,30 @@ class BootStagePanel extends ConsumerWidget {
           const SizedBox(height: 16),
           Row(
             children: [
-              CupertinoButton.filled(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                onPressed: services.anyBusy
-                    ? null
-                    : services.allRunning
-                        ? () => ref
-                            .read(servicesControllerProvider.notifier)
-                            .stopAll()
-                        : () => ref
-                            .read(servicesControllerProvider.notifier)
-                            .startAll(),
-                child: Text(
-                  services.allRunning ? 'Stop Services' : 'Start Services',
+              Tooltip(
+                message: (services.allRunning || prepReady)
+                    ? ''
+                    : !setupDone
+                        ? 'Run Setup PXE first'
+                        : 'Run Build config first',
+                waitDuration: const Duration(milliseconds: 400),
+                child: CupertinoButton.filled(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 24, vertical: 10),
+                  onPressed: services.anyBusy
+                      ? null
+                      : services.allRunning
+                          ? () => ref
+                              .read(servicesControllerProvider.notifier)
+                              .stopAll()
+                          : prepReady
+                              ? () => ref
+                                  .read(servicesControllerProvider.notifier)
+                                  .startAll()
+                              : null,
+                  child: Text(
+                    services.allRunning ? 'Stop Services' : 'Start Services',
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -198,6 +215,8 @@ class _PrepRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final prep = ref.watch(prepControllerProvider);
     final controller = ref.read(prepControllerProvider.notifier);
+    final setupDone =
+        ref.watch(prepDoneProvider(PrepTask.setupPxe)).valueOrNull ?? false;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -233,17 +252,21 @@ class _PrepRow extends ConsumerWidget {
             ),
           ),
           _PrepButton(
+            step: 1,
             label: 'Setup PXE',
             task: PrepTask.setupPxe,
             prep: prep,
             onRun: controller.run,
+            disabledReason: null,
           ),
           const SizedBox(width: 8),
           _PrepButton(
+            step: 2,
             label: 'Build config',
             task: PrepTask.buildConfig,
             prep: prep,
             onRun: controller.run,
+            disabledReason: setupDone ? null : 'Run Setup PXE first',
           ),
         ],
       ),
@@ -253,25 +276,31 @@ class _PrepRow extends ConsumerWidget {
 
 class _PrepButton extends ConsumerWidget {
   const _PrepButton({
+    required this.step,
     required this.label,
     required this.task,
     required this.prep,
     required this.onRun,
+    required this.disabledReason,
   });
+  final int step;
   final String label;
   final PrepTask task;
   final PrepStatus prep;
   final void Function(PrepTask) onRun;
+  final String? disabledReason;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final running = prep.isRunning(task);
     final done = ref.watch(prepDoneProvider(task)).valueOrNull ?? false;
-    return CupertinoButton(
+    final gated = disabledReason != null && !done;
+    final enabled = !prep.isBusy && !gated;
+    final button = CupertinoButton(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       color: CupertinoColors.systemGrey5.resolveFrom(context),
       borderRadius: BorderRadius.circular(6),
-      onPressed: prep.isBusy ? null : () => onRun(task),
+      onPressed: enabled ? () => onRun(task) : null,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -291,7 +320,7 @@ class _PrepButton extends ConsumerWidget {
             ),
           const SizedBox(width: 6),
           Text(
-            label,
+            '$step. $label',
             style: const TextStyle(
               fontSize: 12,
               color: CupertinoColors.label,
@@ -300,6 +329,14 @@ class _PrepButton extends ConsumerWidget {
         ],
       ),
     );
+    if (gated) {
+      return Tooltip(
+        message: disabledReason!,
+        waitDuration: const Duration(milliseconds: 400),
+        child: button,
+      );
+    }
+    return button;
   }
 }
 

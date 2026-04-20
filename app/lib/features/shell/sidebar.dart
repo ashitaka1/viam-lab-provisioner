@@ -29,7 +29,8 @@ class Sidebar extends ConsumerWidget {
                 ? SidebarBatch(batch: batch)
                 : _EmptyState(hasEnv: hasEnv),
           ),
-          if (batch != null) _BatchActions(ref: ref),
+          if (batch != null)
+            _BatchActions(ref: ref, batchPrefix: batch.prefix),
         ],
       ),
     );
@@ -37,8 +38,9 @@ class Sidebar extends ConsumerWidget {
 }
 
 class _BatchActions extends StatelessWidget {
-  const _BatchActions({required this.ref});
+  const _BatchActions({required this.ref, required this.batchPrefix});
   final WidgetRef ref;
+  final String batchPrefix;
 
   Future<void> _resetBatch(BuildContext context) async {
     final confirmed = await _confirm(
@@ -77,11 +79,12 @@ class _BatchActions extends StatelessWidget {
   }
 
   Future<void> _clearBatch(BuildContext context) async {
-    final confirmed = await _confirm(
+    final confirmed = await _confirmTypeToProceed(
       context,
       title: 'Clear batch?',
       message:
-          'Removes the queue and all staged machine credentials. This cannot be undone.',
+          'Removes the queue and all staged machine credentials. This cannot be undone.\n\nType the batch name to confirm:',
+      expectedText: batchPrefix,
       destructiveLabel: 'Clear',
     );
     if (confirmed != true) return;
@@ -124,6 +127,26 @@ class _BatchActions extends StatelessWidget {
             child: Text(destructiveLabel),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<bool?> _confirmTypeToProceed(
+    BuildContext context, {
+    required String title,
+    required String message,
+    required String expectedText,
+    required String destructiveLabel,
+  }) {
+    final controller = TextEditingController();
+    return showCupertinoDialog<bool>(
+      context: context,
+      builder: (ctx) => _TypeToConfirmDialog(
+        title: title,
+        message: message,
+        expectedText: expectedText,
+        destructiveLabel: destructiveLabel,
+        controller: controller,
       ),
     );
   }
@@ -172,6 +195,77 @@ class _BatchActions extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _TypeToConfirmDialog extends StatefulWidget {
+  const _TypeToConfirmDialog({
+    required this.title,
+    required this.message,
+    required this.expectedText,
+    required this.destructiveLabel,
+    required this.controller,
+  });
+  final String title;
+  final String message;
+  final String expectedText;
+  final String destructiveLabel;
+  final TextEditingController controller;
+
+  @override
+  State<_TypeToConfirmDialog> createState() => _TypeToConfirmDialogState();
+}
+
+class _TypeToConfirmDialogState extends State<_TypeToConfirmDialog> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onChanged);
+    super.dispose();
+  }
+
+  void _onChanged() => setState(() {});
+
+  @override
+  Widget build(BuildContext context) {
+    final matches = widget.controller.text.trim() == widget.expectedText;
+    return CupertinoAlertDialog(
+      title: Text(widget.title),
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 6),
+          Text(widget.message),
+          const SizedBox(height: 10),
+          CupertinoTextField(
+            controller: widget.controller,
+            autofocus: true,
+            placeholder: widget.expectedText,
+            autocorrect: false,
+            enableSuggestions: false,
+            onSubmitted: (_) {
+              if (matches) Navigator.pop(context, true);
+            },
+          ),
+        ],
+      ),
+      actions: [
+        CupertinoDialogAction(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancel'),
+        ),
+        CupertinoDialogAction(
+          isDestructiveAction: true,
+          onPressed: matches ? () => Navigator.pop(context, true) : null,
+          child: Text(widget.destructiveLabel),
+        ),
+      ],
     );
   }
 }
