@@ -6,6 +6,57 @@ import '../../providers/preferences_providers.dart';
 import '../../theme/theme.dart';
 import 'environment_form.dart';
 
+/// Shared entry point for creating a new environment. Prompts for a name,
+/// then pushes the environment form. Used by the settings drawer's "+"
+/// button and by the first-launch empty state.
+void showCreateEnvironmentFlow(BuildContext context, WidgetRef ref) {
+  final controller = TextEditingController();
+  showCupertinoDialog(
+    context: context,
+    builder: (ctx) => CupertinoAlertDialog(
+      title: const Text('New Environment'),
+      content: Padding(
+        padding: const EdgeInsets.only(top: 12),
+        child: CupertinoTextField(
+          controller: controller,
+          placeholder: 'Environment name',
+          autofocus: true,
+          onSubmitted: (value) {
+            final name = value.trim();
+            if (name.isEmpty) return;
+            Navigator.pop(ctx);
+            _pushEnvironmentForm(context, name);
+          },
+        ),
+      ),
+      actions: [
+        CupertinoDialogAction(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('Cancel'),
+        ),
+        CupertinoDialogAction(
+          isDefaultAction: true,
+          onPressed: () {
+            final name = controller.text.trim();
+            if (name.isEmpty) return;
+            Navigator.pop(ctx);
+            _pushEnvironmentForm(context, name);
+          },
+          child: const Text('Create'),
+        ),
+      ],
+    ),
+  );
+}
+
+void _pushEnvironmentForm(BuildContext context, String name) {
+  Navigator.of(context, rootNavigator: true).push(
+    CupertinoPageRoute(
+      builder: (_) => EnvironmentForm(environmentName: name),
+    ),
+  );
+}
+
 class SettingsDrawer extends ConsumerWidget {
   const SettingsDrawer({super.key});
 
@@ -179,7 +230,7 @@ class _EnvironmentSection extends ConsumerWidget {
               CupertinoButton(
                 padding: EdgeInsets.zero,
                 minSize: 24,
-                onPressed: () => _showCreateDialog(context, ref),
+                onPressed: () => showCreateEnvironmentFlow(context, ref),
                 child: const Icon(CupertinoIcons.plus, size: 18),
               ),
             ],
@@ -226,48 +277,7 @@ class _EnvironmentSection extends ConsumerWidget {
     );
   }
 
-  void _showCreateDialog(BuildContext context, WidgetRef ref) {
-    final controller = TextEditingController();
-    showCupertinoDialog(
-      context: context,
-      builder: (ctx) => CupertinoAlertDialog(
-        title: const Text('New Environment'),
-        content: Padding(
-          padding: const EdgeInsets.only(top: 12),
-          child: CupertinoTextField(
-            controller: controller,
-            placeholder: 'Environment name',
-            autofocus: true,
-          ),
-        ),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          CupertinoDialogAction(
-            isDefaultAction: true,
-            onPressed: () async {
-              final name = controller.text.trim();
-              if (name.isEmpty) return;
-              Navigator.pop(ctx);
-              _openEnvironmentForm(context, ref, name);
-            },
-            child: const Text('Create'),
-          ),
-        ],
-      ),
-    );
-  }
 
-  void _openEnvironmentForm(
-      BuildContext context, WidgetRef ref, String name) {
-    Navigator.of(context, rootNavigator: true).push(
-      CupertinoPageRoute(
-        builder: (_) => EnvironmentForm(environmentName: name),
-      ),
-    );
-  }
 }
 
 class _EnvironmentTile extends ConsumerWidget {

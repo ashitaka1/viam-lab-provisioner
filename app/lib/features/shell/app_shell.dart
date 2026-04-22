@@ -8,7 +8,7 @@ import '../batch/new_batch_form.dart';
 import '../batch/provision_stage_panel.dart';
 import '../boot/boot_stage_panel.dart';
 import '../flash/flash_stage_panel.dart';
-import '../settings/settings_drawer.dart';
+import '../settings/settings_drawer.dart' show SettingsDrawer, showCreateEnvironmentFlow;
 import '../verify/verify_stage_panel.dart';
 import 'toolbar.dart';
 import 'sidebar.dart';
@@ -72,28 +72,47 @@ class _MainPanel extends ConsumerWidget {
   }
 }
 
-class _NoEnvironment extends StatelessWidget {
+class _NoEnvironment extends ConsumerWidget {
   const _NoEnvironment();
 
   @override
-  Widget build(BuildContext context) {
-    return const Center(
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Center(
       child: Padding(
-        padding: EdgeInsets.all(32),
+        padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'No environment selected',
+            const Icon(
+              CupertinoIcons.cube_box,
+              size: 40,
+              color: CupertinoColors.tertiaryLabel,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'No environment yet',
               style: TextStyle(
-                fontSize: 18,
-                color: CupertinoColors.secondaryLabel,
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            SizedBox(height: 8),
-            Text(
-              'Open Settings to create or select an environment.',
-              style: TextStyle(color: CupertinoColors.tertiaryLabel),
+            const SizedBox(height: 6),
+            const Text(
+              'Environments hold the credentials and network settings '
+              'for a batch. Create one to begin provisioning.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                color: CupertinoColors.secondaryLabel,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 20),
+            CupertinoButton.filled(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 18, vertical: 8),
+              onPressed: () => showCreateEnvironmentFlow(context, ref),
+              child: const Text('Create environment'),
             ),
           ],
         ),
