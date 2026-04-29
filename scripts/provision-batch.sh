@@ -114,7 +114,7 @@ json.dump(q, sys.stdout)
     echo "  Machines: ${COUNT} (${PREFIX}-1 through ${PREFIX}-${COUNT})"
     echo "  Queue file: ${MACHINES_DIR}/queue.json"
     echo ""
-    echo "Next: just flash-batch"
+    echo "Next: just flash-batch (Pi SD) or just serve (PXE)"
     exit 0
 fi
 
