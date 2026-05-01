@@ -167,10 +167,11 @@ template = template.replace('PLACEHOLDER_TIMEZONE', sys.argv[6])
 template = template.replace('PLACEHOLDER_INSTALL_VIAM', sys.argv[7])
 template = template.replace('PLACEHOLDER_INSTALL_TAILSCALE', sys.argv[8])
 template = template.replace('PLACEHOLDER_PACKAGES', sys.argv[9])
-open(sys.argv[10], 'w').write(template)
+template = template.replace('PLACEHOLDER_WIFI_COUNTRY', sys.argv[10])
+open(sys.argv[11], 'w').write(template)
 " "$USERDATA_TPL" "$MACHINE_NAME" "$PASSWORD_HASH" "$SSH_PUBLIC_KEY" \
   "$USERNAME" "$TIMEZONE" "$INSTALL_VIAM" "$INSTALL_TAILSCALE" "$PACKAGES" \
-  "${BOOT_MOUNT}/user-data"
+  "${WIFI_COUNTRY:-}" "${BOOT_MOUNT}/user-data"
 
 # --- Write viam.json (full mode only) ---
 
@@ -239,7 +240,7 @@ echo "  Machine:  ${MACHINE_NAME}"
 echo "  Mode:     ${PROVISION_MODE}"
 echo "  Image:    $(basename $PI_IMAGE)"
 echo "  Device:   ${DEVICE}"
-[[ -n "${WIFI_SSID:-}" ]] && echo "  WiFi:     ${WIFI_SSID}"
+[[ -n "${WIFI_SSID:-}" ]] && echo "  WiFi:     ${WIFI_SSID} (country: ${WIFI_COUNTRY:-unset})"
 [[ -n "${TAILSCALE_AUTH_KEY:-}" ]] && echo "  Tailscale: yes"
 echo ""
 echo "Insert into Pi and power on."
