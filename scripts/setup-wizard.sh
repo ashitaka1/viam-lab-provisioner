@@ -144,8 +144,16 @@ echo ""
 echo "Network:"
 read -p "  WiFi SSID (blank to skip): " WIFI_SSID
 WIFI_PASSWORD=""
+WIFI_COUNTRY=""
 if [[ -n "$WIFI_SSID" ]]; then
     read -p "  WiFi password: " WIFI_PASSWORD
+    while :; do
+        read -p "  WiFi country (2-letter ISO, e.g., US, GB, DE) [US]: " WIFI_COUNTRY
+        WIFI_COUNTRY="${WIFI_COUNTRY:-US}"
+        WIFI_COUNTRY=$(echo "$WIFI_COUNTRY" | tr '[:lower:]' '[:upper:]')
+        [[ "$WIFI_COUNTRY" =~ ^[A-Z]{2}$ ]] && break
+        echo "  Invalid. Must be 2 letters (e.g., US)."
+    done
 fi
 read -p "  Timezone [America/New_York]: " TIMEZONE
 TIMEZONE="${TIMEZONE:-America/New_York}"
@@ -258,6 +266,7 @@ PASSWORD=${PASSWORD}
 # Network
 WIFI_SSID=${WIFI_SSID}
 WIFI_PASSWORD=${WIFI_PASSWORD}
+WIFI_COUNTRY=${WIFI_COUNTRY}
 TIMEZONE=${TIMEZONE}
 
 # SSH
